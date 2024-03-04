@@ -157,7 +157,7 @@ def getIndex(cur):
 
     return invertedIndex
 
-
+# I am not sure if we need to a method for create table but here it is
 def createTables(cur, conn):
     try:
         sql = "create table categories(id_cat integer not null, name character varying(255) not null, " \
@@ -165,22 +165,24 @@ def createTables(cur, conn):
         cur.execute(sql)
 
         sql = "create table documents(doc integer not null, text character varying(255) not null, " \
-              "title character varying(255) not null, num_chars integer not null, date date not null." \
-              "constraint Documents_pkey primary key (doc), " \
+              "title character varying(255) not null, num_chars integer not null, date date not null, id_cat integer not null," \
+              "constraint documents_pk primary key (doc), " \
               "constraint documents_id_cat_fkey foreign key (id_cat) references categories (id_cat))"
         cur.execute(sql)
 
-        sql = "create table term(term character varying(255) not null, num_chars  integer not null" \
-              "constraint terms_pkey primary key (term)"
+        sql = "create table terms(term character varying(255) not null, num_chars integer not null, " \
+              "constraint terms_pk primary key (term))"
         cur.execute(sql)
 
-        sql = "create table index(term character varying not null, term_count integer not null" \
-              "constraint index_pkey primary key (term, doc), " \
-              "constraint index_doc_fkey foreign key (doc) references documents (doc)), " \
+        sql = "create table index(doc integer not null, term character varying(255) not null, term_count integer not null, " \
+              "constraint index_pk primary key (term, doc), " \
+              "constraint index_doc_fkey foreign key (doc) references documents (doc), " \
               "constraint index_term_fkey foreign key (term) references terms (term))"
         cur.execute(sql)
 
         conn.commit()
-    except:
+    except Exception as e:
         conn.rollback()
         print("There was a problem during the database creation or the database already exists.")
+        print("An error occurred:", e)
+
