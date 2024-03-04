@@ -15,8 +15,13 @@ if __name__ == '__main__':
     # Connecting to the database
     conn = connectDataBase()
 
+
+
     # Getting a cursor
     cur = conn.cursor()
+
+    # Creating the tables (The database should be created manually)
+    createTables(cur, conn)
 
     #print a menu
     print("")

@@ -1,22 +1,22 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # AUTHOR: Brandon Diep
 # FILENAME: db_connection.py
 # SPECIFICATION: Connects to my DB and performs CRUD operations
 # FOR: CS 4250- Assignment #2
 # TIME SPENT: 6 hours
-#-----------------------------------------------------------*/
+# -----------------------------------------------------------*/
 
-#IMPORTANT NOTE: DO NOT USE ANY ADVANCED PYTHON LIBRARY TO COMPLETE THIS CODE SUCH AS numpy OR pandas. You have to work here only with
+# IMPORTANT NOTE: DO NOT USE ANY ADVANCED PYTHON LIBRARY TO COMPLETE THIS CODE SUCH AS numpy OR pandas. You have to work here only with
 # standard arrays
 
-#importing some Python libraries
+# importing some Python libraries
 # --> add your Python code here
 import psycopg2
 import re
 from psycopg2.extras import RealDictCursor
 
-def connectDataBase():
 
+def connectDataBase():
     # Create a database connection object using psycopg2
     # --> add your Python code here
     DB_NAME = "corpus"
@@ -37,8 +37,8 @@ def connectDataBase():
     except:
         print("Database not connected successfully")
 
-def createCategory(cur, catId, catName):
 
+def createCategory(cur, catId, catName):
     # Insert a category in the database
     # --> add your Python code here
 
@@ -47,14 +47,13 @@ def createCategory(cur, catId, catName):
     recset = [catId, catName]
     cur.execute(sql, recset)
 
-def createDocument(cur, docId, docText, docTitle, docDate, docCat):
 
+def createDocument(cur, docId, docText, docTitle, docDate, docCat):
     # 1 Get the category id based on the informed category name
     # --> add your Python code here
     getCategorySql = "SELECT categories.id_cat FROM categories WHERE categories.name = %(catName)s"
     cur.execute(getCategorySql, {'catName': docCat})
     resultCatId = cur.fetchone()
-
 
     # 2 Insert the document in the database. For num_chars, discard the spaces and punctuation marks.
     # --> add your Python code here
@@ -67,7 +66,6 @@ def createDocument(cur, docId, docText, docTitle, docDate, docCat):
     createDocSql = "INSERT INTO documents (doc, text, title, num_chars, date, id_cat) VALUES (%s, %s, %s, %s, %s, %s)"
     recCreateDocSet = [docId, docText, docTitle, num_char, docDate, resultCatId['id_cat']]
     cur.execute(createDocSql, recCreateDocSet)
-
 
     # 3 Update the potential new terms.
     # 3.1 Find all terms that belong to the document. Use space " " as the delimiter character for terms and Remember to lowercase terms and remove punctuation marks.
@@ -102,8 +100,8 @@ def createDocument(cur, docId, docText, docTitle, docDate, docCat):
         recCreateIndexSet = [docId, term, termCount]
         cur.execute(insertIndexSql, recCreateIndexSet)
 
-def deleteDocument(cur, docId):
 
+def deleteDocument(cur, docId):
     # 1 Query the index based on the document to identify terms
     # 1.1 For each term identified, delete its occurrences in the index for that document
     # 1.2 Check if there are no more occurrences of the term in another document. If this happens, delete the term from the database.
@@ -124,14 +122,13 @@ def deleteDocument(cur, docId):
             deleteTermSql = "DELETE FROM terms WHERE term = %(term)s"
             cur.execute(deleteTermSql, {'term': rec['term']})
 
-
     # 2 Delete the document from the database
     # --> add your Python code here
     deleteDocSql = "DELETE FROM documents WHERE doc = %(docId)s"
     cur.execute(deleteDocSql, {'docId': docId})
 
-def updateDocument(cur, docId, docText, docTitle, docDate, docCat):
 
+def updateDocument(cur, docId, docText, docTitle, docDate, docCat):
     # 1 Delete the document
     # --> add your Python code here
     deleteDocument(cur, docId)
@@ -139,6 +136,7 @@ def updateDocument(cur, docId, docText, docTitle, docDate, docCat):
     # 2 Create the document with the same id
     # --> add your Python code here
     createDocument(cur, docId, docText, docTitle, docDate, docCat)
+
 
 def getIndex(cur):
     invertedIndex = {}
@@ -160,3 +158,29 @@ def getIndex(cur):
     return invertedIndex
 
 
+def createTables(cur, conn):
+    try:
+        sql = "create table categories(id_cat integer not null, name character varying(255) not null, " \
+              "constraint categories_pk primary key (id_cat))"
+        cur.execute(sql)
+
+        sql = "create table documents(doc integer not null, text character varying(255) not null, " \
+              "title character varying(255) not null, num_chars integer not null, date date not null." \
+              "constraint Documents_pkey primary key (doc), " \
+              "constraint documents_id_cat_fkey foreign key (id_cat) references categories (id_cat))"
+        cur.execute(sql)
+
+        sql = "create table term(term character varying(255) not null, num_chars  integer not null" \
+              "constraint terms_pkey primary key (term)"
+        cur.execute(sql)
+
+        sql = "create table index(term character varying not null, term_count integer not null" \
+              "constraint index_pkey primary key (term, doc), " \
+              "constraint index_doc_fkey foreign key (doc) references documents (doc)), " \
+              "constraint index_term_fkey foreign key (term) references terms (term))"
+        cur.execute(sql)
+
+        conn.commit()
+    except:
+        conn.rollback()
+        print("There was a problem during the database creation or the database already exists.")
